@@ -139,30 +139,16 @@ public final class AntiAliasingStudy {
                       g2d.drawLine(x1,(y0+patchHeight/4), x1,(y0+patchHeight*3/4));
                     } else if (row == 1) {
                       // outlines (drawPolygon)
-                      if (false) {
-                        // A diamond
-                        g2d.drawPolygon(new int[] {x0+patchWidth/2, x0, x0+patchWidth/2, x1},
-                                        new int[] {y0, y0+patchHeight/2, y1, y0+patchHeight/2},
-                                        4);
-                      } else {
-                        // A stopsign
-                        g2d.drawPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
-                                        new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
-                                        8);
-                      }
+                      // A stopsign
+                      g2d.drawPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
+                                      new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
+                                      8);
                     } else if (row == 2) {
                       // fill
-                      if (false) {
-                        // A diamond
-                        g2d.fillPolygon(new int[] {x0+patchWidth/2, x0, x0+patchWidth/2, x1},
-                                                   new int[] {y0, y0+patchHeight/2, y1, y0+patchHeight/2},
-                                                   4);
-                      } else {
-                        // A stopsign
-                        g2d.fillPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
-                                        new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
-                                        8);
-                      }
+                      // A stopsign
+                      g2d.fillPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
+                                      new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
+                                      8);
                     }
                   }
                 }
@@ -176,19 +162,20 @@ public final class AntiAliasingStudy {
                 //int patchWidth = 44;
                 //int patchHeight = 40;
 
-                int borderThickness = 3;
+                int borderThickness = 4;
                 int totalWidth = 5*borderThickness + 4*patchWidth;
                 int totalHeight = 4*borderThickness + 3*patchHeight;
 
                 java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(totalWidth, totalHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D imgGraphics2D = img.createGraphics();
 
-                showStudyHelper(img.createGraphics(), patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
+                showStudyHelper(imgGraphics2D, patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
 
                 int mag = 8;
                 g.drawImage(img,
                             0,0,totalWidth*mag,totalHeight*mag,
                             0,0,totalWidth,totalHeight,
-                            null);
+                            this);
 
                 // Draw a black X on each picture, in the highest non-biased quality
                 // (now that we know what that is!)
@@ -217,17 +204,10 @@ public final class AntiAliasingStudy {
                       g.drawLine(x0*mag,(y0+patchHeight/4)*mag, x0*mag,(y0+patchHeight*3/4)*mag);
                       g.drawLine(x1*mag,(y0+patchHeight/4)*mag, x1*mag,(y0+patchHeight*3/4)*mag);
                     } else {
-                      if (false) {
-                        // diamond
-                        g.drawPolygon(new int[] {(x0+patchWidth/2)*mag, x0*mag, (x0+patchWidth/2)*mag, x1*mag},
-                                      new int[] {y0*mag, (y0+patchHeight/2)*mag, y1*mag, (y0+patchHeight/2)*mag},
-                                      4);
-                      } else {
-                        // A stopsign
-                        g.drawPolygon(new int[] {(x0+patchWidth/2-2)*mag, x0*mag, x0*mag, (x0+patchWidth/2-2)*mag, (x0+patchWidth/2+2)*mag, x1*mag, x1*mag, (x0+patchWidth/2+2)*mag},
-                                      new int[] {y0*mag, (y0+patchHeight/2-2)*mag, (y0+patchHeight/2+2)*mag, y1*mag, y1*mag, (y0+patchHeight/2+2)*mag, (y0+patchHeight/2-2)*mag, y0*mag},
-                                      8);
-                      }
+                      // A stopsign
+                      g.drawPolygon(new int[] {(x0+patchWidth/2-2)*mag, x0*mag, x0*mag, (x0+patchWidth/2-2)*mag, (x0+patchWidth/2+2)*mag, x1*mag, x1*mag, (x0+patchWidth/2+2)*mag},
+                                    new int[] {y0*mag, (y0+patchHeight/2-2)*mag, (y0+patchHeight/2+2)*mag, y1*mag, y1*mag, (y0+patchHeight/2+2)*mag, (y0+patchHeight/2-2)*mag, y0*mag},
+                                    8);
                     }
                   }
                 }
