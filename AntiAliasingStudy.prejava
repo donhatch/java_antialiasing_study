@@ -1,337 +1,247 @@
-#include "macros.h"
+/** Study the effect of STROKE_PURE. */
 
-import com.donhatchsw.awt.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
+import java.awt.image.*;
 import javax.swing.*;
 
+@SuppressWarnings("serial")
 public final class AntiAliasingStudy {
 
+  // These can be fiddled with.
+  final static int patchWidth = 24;  // keep this a multiple of 4 for sanity
+  final static int patchHeight = 20;  // keep this a multiple of 4 for sanity
+  final static int borderThickness = 4;
+  final static int mag = 8;
+
+  // derived quantities
+  final static int totalWidth = 5*borderThickness + 4*patchWidth;
+  final static int totalHeight = 4*borderThickness + 3*patchHeight;
+
+  private static void drawLittleStudy(Graphics2D g2d,
+                                      int x00, int y00,
+                                      int patchWidth, int patchHeight, int borderThickness, int totalWidth, int totalHeight) {
+    g2d.setColor(new java.awt.Color(240,240,240));
+    g2d.fillRect(x00,y00,totalWidth, totalHeight);
+
+    for (int row = 0; row < 3; ++row) {
+      for (int col = 0; col < 4; ++col) {
+        int x0 = x00 + borderThickness + col*(patchWidth+borderThickness);
+        int y0 = y00 + borderThickness + row*(patchHeight+borderThickness);
+        int x1 = x0 + patchWidth;
+        int y1 = y0 + patchHeight;
+        g2d.setColor(java.awt.Color.WHITE);
+        g2d.fillRect(x0, y0, patchWidth, patchHeight);
+
+        boolean antialias = (col >= 2);
+        boolean pure = (col % 2 == 1);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antialias ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, pure ? RenderingHints.VALUE_STROKE_PURE : RenderingHints.VALUE_STROKE_NORMALIZE);
+
+        g2d.setColor(java.awt.Color.RED);
+        if (row == 0) {
+          // lines (drawLine)
+          // diagonals
+          g2d.drawLine(x0,y1, x1,y0);
+          g2d.drawLine(x0,y0, x1,y1);
+          // orthogonals
+          g2d.drawLine((x0+patchWidth/4),y0, (x0+patchWidth*3/4),y0);
+          g2d.drawLine((x0+patchWidth/4),y1, (x0+patchWidth*3/4),y1);
+          g2d.drawLine(x0,(y0+patchHeight/4), x0,(y0+patchHeight*3/4));
+          g2d.drawLine(x1,(y0+patchHeight/4), x1,(y0+patchHeight*3/4));
+        } else if (row == 1) {
+          // outlines (drawPolygon)
+          // A stopsign
+          g2d.drawPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
+                          new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
+                          8);
+        } else if (row == 2) {
+          // fill (fillPolygon)
+          // A stopsign
+          g2d.fillPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
+                          new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
+                          8);
+        }
+      }
+    }
+  }  // drawLittleStudy
+
+  // Show a study, previously created by drawLittleStudy(), magnified and annotated.
+  private static void showMagnifiedAndAnnotatedStudy(Graphics g,
+                                              BufferedImage studyImage,
+                                              int x00, int y00,
+                                              int patchWidth, int patchHeight, int borderThickness, int totalWidth, int totalHeight, int mag,
+                                              ImageObserver imageObserver) {
+    // Magnify the image
+    g.drawImage(studyImage,
+                /*dst*/ x00,y00,x00+totalWidth*mag,y00+totalHeight*mag,
+                /*src*/ 0,0,totalWidth,totalHeight,
+                imageObserver);
+
+    // Draw annotations on each picture in black,
+    // in the highest quality non-biased mode
+    // (now that we know what that is!)
+    g.setColor(java.awt.Color.BLACK);
+    ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+    for (int row = 0; row < 3; ++row) {
+      for (int col = 0; col < 4; ++col) {
+        int x0 = borderThickness + col*(patchWidth+borderThickness);
+        int y0 = borderThickness + row*(patchHeight+borderThickness);
+        int x1 = x0 + patchWidth;
+        int y1 = y0 + patchHeight;
+        if (false) {
+          g.drawLine(x00+x0*mag,y00+y0*mag, x00+x1*mag,y00+y0*mag);
+          g.drawLine(x00+x1*mag,y00+y0*mag, x00+x1*mag,y00+y1*mag);
+          g.drawLine(x00+x1*mag,y00+y1*mag, x00+x0*mag,y00+y1*mag);
+          g.drawLine(x00+x0*mag,y00+y1*mag, x00+x0*mag,y00+y0*mag);
+        }
+        if (row == 0) {
+          // diagonals
+          g.drawLine(x00+x0*mag,y00+y1*mag, x00+x1*mag,y00+y0*mag);
+          g.drawLine(x00+x0*mag,y00+y0*mag, x00+x1*mag,y00+y1*mag);
+          // orthogonals
+          g.drawLine(x00+(x0+patchWidth/4)*mag,y00+y0*mag, x00+(x0+patchWidth*3/4)*mag,y00+y0*mag);
+          g.drawLine(x00+(x0+patchWidth/4)*mag,y00+y1*mag, x00+(x0+patchWidth*3/4)*mag,y00+y1*mag);
+          g.drawLine(x00+x0*mag,y00+(y0+patchHeight/4)*mag, x00+x0*mag,y00+(y0+patchHeight*3/4)*mag);
+          g.drawLine(x00+x1*mag,y00+(y0+patchHeight/4)*mag, x00+x1*mag,y00+(y0+patchHeight*3/4)*mag);
+        } else {  // row 1 or 2
+          // A stopsign
+          g.drawPolygon(new int[] {x00+(x0+patchWidth/2-2)*mag, x00+x0*mag, x00+x0*mag, x00+(x0+patchWidth/2-2)*mag, x00+(x0+patchWidth/2+2)*mag, x00+x1*mag, x00+x1*mag, x00+(x0+patchWidth/2+2)*mag},
+                        new int[] {y00+y0*mag, y00+(y0+patchHeight/2-2)*mag, y00+(y0+patchHeight/2+2)*mag, y00+y1*mag, y00+y1*mag, y00+(y0+patchHeight/2+2)*mag, y00+(y0+patchHeight/2-2)*mag, y00+y0*mag},
+                        8);
+        }
+      }
+    }
+    FontMetrics fm = g.getFontMetrics();
+    {
+      String[][] texts = {
+          {"ANTIALIAS_OFF", "STROKE_NORMALIZE"},
+          {"ANTIALIAS_OFF", "STROKE_PURE"},
+          {"ANTIALIAS_ON", "STROKE_NORMALIZE"},
+          {"ANTIALIAS_ON", "STROKE_PURE"},
+      };
+      for (int col = 0; col < 4; ++col) {
+        int xCenter = borderThickness*mag + col*(patchWidth+borderThickness)*mag + patchWidth*mag/2;
+        {
+          int x = x00 + xCenter - fm.stringWidth(texts[col][0])/2;
+          int y = y00 + 3*(patchHeight+borderThickness)*mag + fm.getAscent();
+          g.drawString(texts[col][0], x,y);
+          x = xCenter - fm.stringWidth(texts[col][1])/2;
+          y += fm.getHeight();
+          g.drawString(texts[col][1], x,y);
+        }
+      }
+    }
+    {
+      String[] texts = {
+        "drawLine",
+        "drawPolygon",
+        "fillPolygon",
+      };
+      for (int row = 0; row < 3; ++row) {
+        int yCenter = y00 + borderThickness*mag + row*(patchHeight+borderThickness)*mag + patchHeight*mag/2;
+        int x = x00 + 4*(patchWidth+borderThickness)*mag + 10;
+        g.drawString(texts[row], x,yCenter);
+      }
+    }
+  }  // showMagnifiedAndAnnotatedStudy
+
+
+  private static class IndirectExaminationView extends JComponent {
+    public IndirectExaminationView() {
+      //setPreferredSize(new Dimension(770,555));  // for mag 6
+      setPreferredSize(new Dimension(985,702));  // for mag 8
+    }
+    @Override public void paintComponent(Graphics g) {
+      FontMetrics fm = g.getFontMetrics();
+      g.setColor(java.awt.Color.BLACK);
+      g.drawString("through BufferedImage:", 0,fm.getAscent());
+      java.awt.image.BufferedImage studyImage = new java.awt.image.BufferedImage(totalWidth, totalHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+      drawLittleStudy(studyImage.createGraphics(),
+                      0,0,
+                      patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
+                    Graphics2D studyImageGraphics2D = studyImage.createGraphics();
+      g.drawImage(studyImage,
+                  /*dst*/ 0,fm.getHeight(),totalWidth,fm.getHeight()+totalHeight,
+                  /*src*/ 0,0,totalWidth,totalHeight,
+                  this);
+      showMagnifiedAndAnnotatedStudy(g, studyImage,
+                                     0,fm.getHeight()+totalHeight,
+                                     patchWidth, patchHeight, borderThickness, totalWidth, totalHeight, mag, this);
+    }
+  }  // DirectExaminationView
+
+  private static class DirectExaminationView extends JComponent {
+    public DirectExaminationView() {
+      //setPreferredSize(new Dimension(770,555));  // for mag 6
+      setPreferredSize(new Dimension(985,702));  // for mag 8
+    }
+    private BufferedImage imgFromTheRobot = null;
+    @Override public void paintComponent(Graphics g) {
+      final FontMetrics fm = g.getFontMetrics();
+      g.setColor(java.awt.Color.BLACK);
+      g.drawString("direct to JComponent:", 0,fm.getAscent());
+      drawLittleStudy((Graphics2D)g,
+                      0,fm.getHeight(),
+                      patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
+
+      if (imgFromTheRobot != null) {
+        System.out.println("              drawing image from robot");
+        showMagnifiedAndAnnotatedStudy(g, imgFromTheRobot,
+                                       0, fm.getHeight()+totalHeight,
+                                       patchWidth, patchHeight, borderThickness, totalWidth, totalHeight, mag, this);
+        imgFromTheRobot = null;
+      } else {
+        System.out.println("              scheduling a robot");
+        g.drawString("*** SCREEN CAPTURE PENDING ***", 0, fm.getHeight()+totalHeight+fm.getHeight()+fm.getHeight());
+        // Most reliable way to do it seems to be to put it on a timer after a delay.
+        Timer timer = new Timer(1000/2, new ActionListener() {
+          @Override public void actionPerformed(ActionEvent ae) {
+            System.out.println("            in timer callback");
+            Robot robot;
+            try {
+              robot = new Robot();
+            } catch (AWTException e) {
+              System.err.println("caught AWTException: "+e);
+              throw new Error(e);
+            }
+
+            Point myTopLeftOnScreen = getLocationOnScreen();
+            Rectangle rect = new Rectangle(
+              myTopLeftOnScreen.x, myTopLeftOnScreen.y + fm.getHeight(),
+              totalWidth,totalHeight);
+            BufferedImage img = robot.createScreenCapture(rect);
+            imgFromTheRobot = img;
+            repaint();
+            System.out.println("            out timer callback");
+          }
+        });
+        timer.setRepeats(false);
+        timer.start();
+      }
+    }
+  }  // DirectExaminationView
+
   public static void main(String[] args) {
-    OUT("    in main");
     javax.swing.SwingUtilities.invokeLater(new Runnable() {
       @Override public void run()
       {
-        OUT("        in invokeLater run");
-        new JFrame("A JFrame") {{
-          getContentPane().add(new JCol() {
-            private  boolean[/*antialiased then not*/][/*fill then outline*/][/*normalized then pure*/][] valueHolders = new boolean[2][2][2][1];
-            private boolean[] showStudyHolder = {true};
-            {
-              for (int antialiased_then_not = 0; antialiased_then_not < 2; ++antialiased_then_not) {
-                  valueHolders[antialiased_then_not][0][0][0] = true;
-              }
-            }
-
-            private JComponent theCanvas = null;
-            @SuppressWarnings("serial")
-            class JCheckBoxThatControlsValue extends JCheckBox {
-              public JCheckBoxThatControlsValue(final String name, final boolean[] valueHolder) {
-                super(name);
-                setSelected(valueHolder[0]);
-                final boolean[] finalValueHolder = valueHolder;
-                addItemListener(new ItemListener() {
-                  @Override public void itemStateChanged(ItemEvent e) {
-                    finalValueHolder[0] = e.getStateChange() == ItemEvent.SELECTED;
-                    theCanvas.repaint();
-                  }
-                });
-              }
-            };
-
-          {
-            add(theCanvas = new JComponent() {  // NOTE: utterly flaky if I make this a JPanel!!  don't know why.
-              private boolean antialiasing = false;
-              {
-                // argh!  not working
-                setPreferredSize(new Dimension(700,500));
-                setMinimumSize(new Dimension(700,500));
-
-                addKeyListener(new KeyAdapter() {
-                  @Override public void keyPressed(KeyEvent e) {
-                    System.out.println("repainting");
-                    repaint();
-                  }
-                });
-              }
-              @Override public boolean isFocusable() { return true; }
-              // not statuc because uses this.getWidth() and getHeight
-              private void maybeFillMaybeDrawThing(Graphics g, boolean fill, boolean draw) {
-                if (true) {
-                  Graphics2D g2d = (Graphics2D)g;
-                  if (fill) System.out.print("              fill with: ");
-                  if (draw) System.out.print("              draw with: ");
-                  System.out.print(g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING).equals(RenderingHints.VALUE_ANTIALIAS_ON) ? "ANTIALIAS_ON" : 
-                      g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING).equals(RenderingHints.VALUE_ANTIALIAS_OFF) ? "ANTIALIAS_OFF" :
-                      "ANTIALIASING ("+g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING)+") ???");
-                  System.out.print(" ");
-                  System.out.print(g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL).equals(RenderingHints.VALUE_STROKE_NORMALIZE) ? "STROKE_NORMALIZE" : 
-                      g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL).equals(RenderingHints.VALUE_STROKE_PURE) ? "STROKE_PURE" :
-                      g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL).equals(RenderingHints.VALUE_STROKE_DEFAULT) ? "STROKE_DEFAULT" :
-                      "draw with STROKE_CONTROL ("+g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL)+") ???");
-                  System.out.println();
-                }
-
-                int xCenter = this.getWidth()/2;
-                int yCenter = this.getHeight()/2;
-
-                int[] xs = new int[4];
-                int[] ys = new int[4];
-                int n = 16;
-                for (int i = 0; i < n; i++) {
-                  double r1 = 25;
-                  double r2 = Math.min(this.getWidth(),this.getHeight())/2 - 4;
-                  double angle0 = 2*Math.PI*(i-.25-.25)/n;
-                  double angle1 = 2*Math.PI*(i+.25-.25)/n;
-                  xs[0] = (int)Math.round(xCenter + Math.cos(angle0)*r1);
-                  ys[0] = (int)Math.round(yCenter + Math.sin(angle0)*r1);
-                  xs[1] = (int)Math.round(xCenter + Math.cos(angle0)*r2);
-                  ys[1] = (int)Math.round(yCenter + Math.sin(angle0)*r2);
-                  xs[2] = (int)Math.round(xCenter + Math.cos(angle1)*r2);
-                  ys[2] = (int)Math.round(yCenter + Math.sin(angle1)*r2);
-                  xs[3] = (int)Math.round(xCenter + Math.cos(angle1)*r1);
-                  ys[3] = (int)Math.round(yCenter + Math.sin(angle1)*r1);
-                  if (fill) {
-                    g.fillPolygon(xs, ys, 4);
-                  }
-                  if (draw) {
-                    if (true) {
-                      g.drawPolygon(xs, ys, 4);
-                    } else {
-                      // draw as lines.  same?  argh!  not for non-antialiased!  drawPolygon is NW, drawLine is SE
-                      for (int j = 0; j < 4; ++j) {
-                        g.drawLine(xs[j], ys[j], xs[(j+1)%4], ys[(j+1)%4]);
-                      }
-                    }
-                  }
-                }
-              }
-
-              private void showStudyHelper(Graphics2D g2d, int patchWidth, int patchHeight, int borderThickness, int totalWidth, int totalHeight) {
-                g2d.setColor(new java.awt.Color(240,240,240));
-                g2d.fillRect(0,0,totalWidth, totalHeight);
-
-                for (int row = 0; row < 3; ++row) {
-                  for (int col = 0; col < 4; ++col) {
-                    int x0 = borderThickness + col*(patchWidth+borderThickness);
-                    int y0 = borderThickness + row*(patchHeight+borderThickness);
-                    int x1 = x0 + patchWidth;
-                    int y1 = y0 + patchHeight;
-                    g2d.setColor(java.awt.Color.WHITE);
-                    g2d.fillRect(x0, y0, patchWidth, patchHeight);
-
-                    boolean antialias = (col >= 2);
-                    boolean pure = (col % 2 == 1);
-                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antialias ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-                    g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, pure ? RenderingHints.VALUE_STROKE_PURE : RenderingHints.VALUE_STROKE_NORMALIZE);
-
-                    g2d.setColor(java.awt.Color.RED);
-                    if (row == 0) {
-                      // line
-                      // diagonals
-                      g2d.drawLine(x0,y1, x1,y0);
-                      g2d.drawLine(x0,y0, x1,y1);
-                      // orthogonals
-                      g2d.drawLine((x0+patchWidth/4),y0, (x0+patchWidth*3/4),y0);
-                      g2d.drawLine((x0+patchWidth/4),y1, (x0+patchWidth*3/4),y1);
-                      g2d.drawLine(x0,(y0+patchHeight/4), x0,(y0+patchHeight*3/4));
-                      g2d.drawLine(x1,(y0+patchHeight/4), x1,(y0+patchHeight*3/4));
-                    } else if (row == 1) {
-                      // outlines (drawPolygon)
-                      // A stopsign
-                      g2d.drawPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
-                                      new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
-                                      8);
-                    } else if (row == 2) {
-                      // fill
-                      // A stopsign
-                      g2d.fillPolygon(new int[] {x0+patchWidth/2-2, x0, x0, x0+patchWidth/2-2, x0+patchWidth/2+2, x1, x1, x0+patchWidth/2+2},
-                                      new int[] {y0, y0+patchHeight/2-2, y0+patchHeight/2+2, y1, y1, y0+patchHeight/2+2, y0+patchHeight/2-2, y0},
-                                      8);
-                    }
-                  }
-                }
-              }
-
-              private void showStudy(Graphics g) {
-
-                // Make these multiples of 4 for sanity
-                int patchWidth = 24;
-                int patchHeight = 20;
-                //int patchWidth = 44;
-                //int patchHeight = 40;
-
-                int borderThickness = 4;
-                int totalWidth = 5*borderThickness + 4*patchWidth;
-                int totalHeight = 4*borderThickness + 3*patchHeight;
-
-                java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(totalWidth, totalHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                Graphics2D imgGraphics2D = img.createGraphics();
-
-                showStudyHelper(imgGraphics2D, patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
-
-                int mag = 8;
-                g.drawImage(img,
-                            0,0,totalWidth*mag,totalHeight*mag,
-                            0,0,totalWidth,totalHeight,
-                            this);
-
-                // Draw a black X on each picture, in the highest non-biased quality
-                // (now that we know what that is!)
-                g.setColor(java.awt.Color.BLACK);
-                ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-                for (int row = 0; row < 3; ++row) {
-                  for (int col = 0; col < 4; ++col) {
-                    int x0 = borderThickness + col*(patchWidth+borderThickness);
-                    int y0 = borderThickness + row*(patchHeight+borderThickness);
-                    int x1 = x0 + patchWidth;
-                    int y1 = y0 + patchHeight;
-                    if (false) {
-                      g.drawLine(x0*mag,y0*mag, x1*mag,y0*mag);
-                      g.drawLine(x1*mag,y0*mag, x1*mag,y1*mag);
-                      g.drawLine(x1*mag,y1*mag, x0*mag,y1*mag);
-                      g.drawLine(x0*mag,y1*mag, x0*mag,y0*mag);
-                    }
-                    if (row == 0) {
-                      // diagonals
-                      g.drawLine(x0*mag,y1*mag, x1*mag,y0*mag);
-                      g.drawLine(x0*mag,y0*mag, x1*mag,y1*mag);
-                      // orthogonals
-                      g.drawLine((x0+patchWidth/4)*mag,y0*mag, (x0+patchWidth*3/4)*mag,y0*mag);
-                      g.drawLine((x0+patchWidth/4)*mag,y1*mag, (x0+patchWidth*3/4)*mag,y1*mag);
-                      g.drawLine(x0*mag,(y0+patchHeight/4)*mag, x0*mag,(y0+patchHeight*3/4)*mag);
-                      g.drawLine(x1*mag,(y0+patchHeight/4)*mag, x1*mag,(y0+patchHeight*3/4)*mag);
-                    } else {
-                      // A stopsign
-                      g.drawPolygon(new int[] {(x0+patchWidth/2-2)*mag, x0*mag, x0*mag, (x0+patchWidth/2-2)*mag, (x0+patchWidth/2+2)*mag, x1*mag, x1*mag, (x0+patchWidth/2+2)*mag},
-                                    new int[] {y0*mag, (y0+patchHeight/2-2)*mag, (y0+patchHeight/2+2)*mag, y1*mag, y1*mag, (y0+patchHeight/2+2)*mag, (y0+patchHeight/2-2)*mag, y0*mag},
-                                    8);
-                    }
-                  }
-                }
-                FontMetrics fm = g.getFontMetrics();
-                {
-                  String[][] texts = {
-                      {"ANTIALIAS_OFF", "STROKE_NORMALIZE"},
-                      {"ANTIALIAS_OFF", "STROKE_PURE"},
-                      {"ANTIALIAS_ON", "STROKE_NORMALIZE"},
-                      {"ANTIALIAS_ON", "STROKE_PURE"},
-                  };
-                  for (int col = 0; col < 4; ++col) {
-                    int xCenter = borderThickness*mag + col*(patchWidth+borderThickness)*mag + patchWidth*mag/2;
-                    {
-                      int x = xCenter - fm.stringWidth(texts[col][0])/2;
-                      int y = 3*(patchHeight+borderThickness)*mag + fm.getAscent();
-                      g.drawString(texts[col][0], x,y);
-                      x = xCenter - fm.stringWidth(texts[col][1])/2;
-                      y += fm.getHeight();
-                      g.drawString(texts[col][1], x,y);
-                    }
-                  }
-                }
-                {
-                  String[] texts = {
-                    "drawLine",
-                    "drawPolygon",
-                    "fillPolygon",
-                  };
-                  for (int row = 0; row < 3; ++row) {
-                    int yCenter = borderThickness*mag + row*(patchHeight+borderThickness)*mag + patchHeight*mag/2;
-                    int x = 4*(patchWidth+borderThickness)*mag + 10;
-                    g.drawString(texts[row], x,yCenter);
-                  }
-                }
-                if (true) {
-                  showStudyHelper((Graphics2D)g, patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
-                }
-              }
-
-              @Override public void paintComponent(Graphics g) {
-                OUT("            in paintComponent");
-
-                if (showStudyHolder[0]) {
-                  showStudy(g);
-                } else {
-
-                  Graphics2D g2d = (Graphics2D)g;
-
-                  // Conclusions:
-                  // - DEFAULT is the same as NORMALIZE which is the same as not doing this at all
-                  // - draw (outlines):
-                  //   - there is no bias by default
-                  //   - turning on pure for antialiased moves it NW
-                  //   - turning on pure for not-antialiased moves it NW
-                  //   - turning on pure for both moves both NW, antialiased slightly more than non-antialiased
-                  //   - conclusion: keep pure off for lines; the result is quite good.
-                  // - fill:
-                  //   - there is bias by default: antialiased is to NW of non-anti-aliased.
-                  //   - turning on pure for antialiased does nothing
-                  //   - turning on pure for non-antialised moves it to NW, which fixes the bias!
-                  for (int i_antialiased_then_not = 0; i_antialiased_then_not < 2; ++i_antialiased_then_not) {
-                    //int antialiased_then_not = i_antialiased_then_not;
-                    int antialiased_then_not = 1 - i_antialiased_then_not;
-                    g.setColor(antialiased_then_not==0 ? java.awt.Color.RED : java.awt.Color.GREEN);
-                    for (int fill_then_outline = 0; fill_then_outline < 2; ++fill_then_outline) {
-                      for (int normalized_then_pure = 0; normalized_then_pure < 2; ++normalized_then_pure) {
-                        if (valueHolders[antialiased_then_not][fill_then_outline][normalized_then_pure][0]) {
-                          g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antialiased_then_not==0 ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-                          g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, normalized_then_pure==0 ? RenderingHints.VALUE_STROKE_NORMALIZE : RenderingHints.VALUE_STROKE_PURE);
-                          maybeFillMaybeDrawThing(g, /*fill=*/fill_then_outline==0, /*draw=*/fill_then_outline==1);
-                        }
-                      }
-                    }
-                  }
-                }
-                OUT("            out paintComponent");
-              }
-            }, new java.awt.GridBagConstraints(){{gridwidth = REMAINDER;
-                                                  fill = BOTH; weightx = 1.; weighty = 1.;}});
-            add(new JRow() {{
-              add(new JCol() {{
-                add(new JLabel("antialiased") {{
-                  setForeground(java.awt.Color.RED);
-                }});
-                add(new JLabel("not antialiased") {{
-                  setForeground(java.awt.Color.GREEN);
-                }});
-              }});
-              add(new JCol() {{
-                add(new JCheckBoxThatControlsValue("fill normalized", valueHolders[0][0][0]) {{
-                }});
-                add(new JCheckBoxThatControlsValue("fill normalized", valueHolders[1][0][0]) {{
-                }});
-              }});
-              add(new JCol() {{
-                add(new JCheckBoxThatControlsValue("fill pure", valueHolders[0][0][1]) {{
-                }});
-                add(new JCheckBoxThatControlsValue("fill pure", valueHolders[1][0][1]) {{
-                }});
-              }});
-              add(new JCol() {{
-                add(new JCheckBoxThatControlsValue("outline normalized", valueHolders[0][1][0]) {{
-                }});
-                add(new JCheckBoxThatControlsValue("outline normalized", valueHolders[1][1][0]) {{
-                }});
-              }});
-              add(new JCol() {{
-                add(new JCheckBoxThatControlsValue("outline pure", valueHolders[0][1][1]) {{
-                }});
-                add(new JCheckBoxThatControlsValue("outline pure", valueHolders[1][1][1]) {{
-                }});
-              }});
-              add(new JCheckBoxThatControlsValue("show study instead", showStudyHolder));
-            }});
-          }});
+        new JFrame("direct to JComponent") {{
+          getContentPane().add(new DirectExaminationView());
           setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
           pack();
+          setLocation(0,0);
           setVisible(true);
-        }};  // new JFrame
-        OUT("        out invokeLater run");
+        }};
+        new JFrame("through BufferedImage") {{
+          getContentPane().add(new IndirectExaminationView());
+          setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+          pack();
+          setLocation(950,0);
+          setVisible(true);
+        }};
       }
     });
-    OUT("    out main");
   }
-}
-
+}  // class AntiAliasingStudy
