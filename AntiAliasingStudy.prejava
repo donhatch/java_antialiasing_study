@@ -1,0 +1,387 @@
+#include "macros.h"
+
+import com.donhatchsw.awt.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import javax.swing.*;
+
+public final class AntiAliasingStudy {
+
+  public static void main(String[] args) {
+    OUT("    in main");
+    javax.swing.SwingUtilities.invokeLater(new Runnable() {
+      @Override public void run()
+      {
+        OUT("        in invokeLater run");
+        new JFrame("A JFrame") {{
+          getContentPane().add(new JCol() {
+            private  boolean[/*antialiased then not*/][/*fill then outline*/][/*normalized then pure*/][] valueHolders = new boolean[2][2][2][1];
+            private boolean[] showStudyHolder = {true};
+            {
+              for (int antialiased_then_not = 0; antialiased_then_not < 2; ++antialiased_then_not) {
+                  valueHolders[antialiased_then_not][0][0][0] = true;
+              }
+            }
+
+            private JComponent theCanvas = null;
+            @SuppressWarnings("serial")
+            class JCheckBoxThatControlsValue extends JCheckBox {
+              public JCheckBoxThatControlsValue(final String name, final boolean[] valueHolder) {
+                super(name);
+                setSelected(valueHolder[0]);
+                final boolean[] finalValueHolder = valueHolder;
+                addItemListener(new ItemListener() {
+                  @Override public void itemStateChanged(ItemEvent e) {
+                    finalValueHolder[0] = e.getStateChange() == ItemEvent.SELECTED;
+                    theCanvas.repaint();
+                  }
+                });
+              }
+            };
+
+          {
+            add(theCanvas = new JComponent() {  // NOTE: utterly flaky if I make this a JPanel!!  don't know why.
+              private boolean antialiasing = false;
+              {
+                // argh!  not working
+                setPreferredSize(new Dimension(700,500));
+                setMinimumSize(new Dimension(700,500));
+
+                addKeyListener(new KeyAdapter() {
+                  @Override public void keyPressed(KeyEvent e) {
+                    System.out.println("repainting");
+                    repaint();
+                  }
+                });
+              }
+              @Override public boolean isFocusable() { return true; }
+              // not statuc because uses this.getWidth() and getHeight
+              private void maybeFillMaybeDrawThing(Graphics g, boolean fill, boolean draw) {
+                if (true) {
+                  Graphics2D g2d = (Graphics2D)g;
+                  if (fill) System.out.print("              fill with: ");
+                  if (draw) System.out.print("              draw with: ");
+                  System.out.print(g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING).equals(RenderingHints.VALUE_ANTIALIAS_ON) ? "ANTIALIAS_ON" : 
+                      g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING).equals(RenderingHints.VALUE_ANTIALIAS_OFF) ? "ANTIALIAS_OFF" :
+                      "ANTIALIASING ("+g2d.getRenderingHint(RenderingHints.KEY_ANTIALIASING)+") ???");
+                  System.out.print(" ");
+                  System.out.print(g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL).equals(RenderingHints.VALUE_STROKE_NORMALIZE) ? "STROKE_NORMALIZE" : 
+                      g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL).equals(RenderingHints.VALUE_STROKE_PURE) ? "STROKE_PURE" :
+                      g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL).equals(RenderingHints.VALUE_STROKE_DEFAULT) ? "STROKE_DEFAULT" :
+                      "draw with STROKE_CONTROL ("+g2d.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL)+") ???");
+                  System.out.println();
+                }
+
+                int xCenter = this.getWidth()/2;
+                int yCenter = this.getHeight()/2;
+
+                int[] xs = new int[4];
+                int[] ys = new int[4];
+                int n = 16;
+                for (int i = 0; i < n; i++) {
+                  double r1 = 25;
+                  double r2 = Math.min(this.getWidth(),this.getHeight())/2 - 4;
+                  double angle0 = 2*Math.PI*(i-.25-.25)/n;
+                  double angle1 = 2*Math.PI*(i+.25-.25)/n;
+                  xs[0] = (int)Math.round(xCenter + Math.cos(angle0)*r1);
+                  ys[0] = (int)Math.round(yCenter + Math.sin(angle0)*r1);
+                  xs[1] = (int)Math.round(xCenter + Math.cos(angle0)*r2);
+                  ys[1] = (int)Math.round(yCenter + Math.sin(angle0)*r2);
+                  xs[2] = (int)Math.round(xCenter + Math.cos(angle1)*r2);
+                  ys[2] = (int)Math.round(yCenter + Math.sin(angle1)*r2);
+                  xs[3] = (int)Math.round(xCenter + Math.cos(angle1)*r1);
+                  ys[3] = (int)Math.round(yCenter + Math.sin(angle1)*r1);
+                  if (fill) {
+                    fillPolygonIntrusivelyRandomized(g, xs, ys, 4);
+                  }
+                  if (draw) {
+                    if (true) {
+                      drawPolygonIntrusivelyRandomized(g, xs, ys, 4);
+                    } else {
+                      // draw as lines.  same?  argh!  not for non-antialiased!  drawPolygon is NW, drawLine is SE
+                      for (int j = 0; j < 4; ++j) {
+                        g.drawLine(xs[j], ys[j], xs[(j+1)%4], ys[(j+1)%4]);
+                      }
+                    }
+                  }
+                }
+              }
+
+              private void showStudyHelper(Graphics2D g2d, int patchWidth, int patchHeight, int borderThickness, int totalWidth, int totalHeight) {
+                g2d.setColor(new java.awt.Color(240,240,240));
+                g2d.fillRect(0,0,totalWidth, totalHeight);
+
+                for (int row = 0; row < 3; ++row) {
+                  for (int col = 0; col < 4; ++col) {
+                    int x0 = borderThickness + col*(patchWidth+borderThickness);
+                    int y0 = borderThickness + row*(patchHeight+borderThickness);
+                    int x1 = x0 + patchWidth;
+                    int y1 = y0 + patchHeight;
+                    g2d.setColor(java.awt.Color.WHITE);
+                    g2d.fillRect(x0, y0, patchWidth, patchHeight);
+
+                    boolean antialias = (col >= 2);
+                    boolean pure = (col % 2 == 1);
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antialias ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+                    g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, pure ? RenderingHints.VALUE_STROKE_PURE : RenderingHints.VALUE_STROKE_NORMALIZE);
+
+                    g2d.setColor(java.awt.Color.RED);
+                    if (row == 0) {
+                      // line
+                      g2d.drawLine(x0,y1, x1,y0);
+                      g2d.drawLine(x0,y0, x1,y1);
+                    } else if (row == 1) {
+                      // outlines (drawPolygon)
+                      if (false) {
+                        // An X
+                        drawPolygonIntrusivelyRandomized(g2d, new int[] {x0+2, x1, x1-2, x0},
+                                                              new int[] {y1, y0+2, y0, y1-2},
+                                                              4);
+                        drawPolygonIntrusivelyRandomized(g2d, new int[] {x0, x1-2, x1, x0+2},
+                                                              new int[] {y0+2, y1, y1-2, y0},
+                                                              4);
+                      } else {
+                        // A diamond
+                        drawPolygonIntrusivelyRandomized(g2d, new int[] {x0+patchWidth/2, x0, x0+patchWidth/2, x1},
+                                                              new int[] {y0, y0+patchHeight/2, y1, y0+patchHeight/2},
+                                                              4);
+                      }
+                    } else if (row == 2) {
+                      // fill
+                      if (false) {
+                        fillPolygonIntrusivelyRandomized(g2d, new int[] {x0+2, x1, x1-2, x0},
+                                        new int[] {y1, y0+2, y0, y1-2},
+                                        4);
+                        fillPolygonIntrusivelyRandomized(g2d, new int[] {x0, x1-2, x1, x0+2},
+                                        new int[] {y0+2, y1, y1-2, y0},
+                                        4);
+                      } else {
+                        // A diamond
+                        fillPolygonIntrusivelyRandomized(g2d, new int[] {x0+patchWidth/2, x0, x0+patchWidth/2, x1},
+                                                              new int[] {y0, y0+patchHeight/2, y1, y0+patchHeight/2},
+                                                              4);
+                      }
+                    }
+                  }
+                }
+              }
+
+              private void intrusivelyRandomize(int[] xs, int[] ys, int n) {
+                int offset = (int)(Math.random()*1000000) % n;
+                for (int i = 0; i < offset; ++i) {
+                  int x0 = xs[0];
+                  int y0 = ys[0];
+                  for (int j = 0; j+1 < n; ++j) {
+                    xs[j] = xs[j+1];
+                    ys[j] = ys[j+1];
+                  }
+                  xs[n-1] = x0;
+                  ys[n-1] = y0;
+                }
+                boolean reflect = Math.random() >= .5;
+                if (reflect) {
+                  int temp;
+                  for (int j = 0; j < n-1-j; ++j) {
+                    SWAP(xs[j], xs[n-1-j], temp);
+                    SWAP(ys[j], ys[n-1-j], temp);
+                  }
+                }
+              }
+              private void drawPolygonIntrusivelyRandomized(Graphics g, int[] xs, int[] ys, int n) {
+                intrusivelyRandomize(xs, ys, n);
+                g.drawPolygon(xs, ys, n);
+              }
+              private void fillPolygonIntrusivelyRandomized(Graphics g, int[] xs, int[] ys, int n) {
+                intrusivelyRandomize(xs, ys, n);
+                g.fillPolygon(xs, ys, n);
+              }
+
+              private void showStudy(Graphics g) {
+
+                // Make these multiples of 4 for sanity
+                int patchWidth = 24;
+                int patchHeight = 20;
+                //int patchWidth = 44;
+                //int patchHeight = 40;
+
+                int borderThickness = 3;
+                int totalWidth = 5*borderThickness + 4*patchWidth;
+                int totalHeight = 4*borderThickness + 3*patchHeight;
+
+                java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(totalWidth, totalHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+
+                showStudyHelper(img.createGraphics(), patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
+
+                int mag = 8;
+                g.drawImage(img,
+                            0,0,totalWidth*mag,totalHeight*mag,
+                            0,0,totalWidth,totalHeight,
+                            null);
+
+                // Draw a black X on each picture, in the highest non-biased quality
+                // (now that we know what that is!)
+                g.setColor(java.awt.Color.BLACK);
+                ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+                for (int row = 0; row < 3; ++row) {
+                  for (int col = 0; col < 4; ++col) {
+                    int x0 = borderThickness + col*(patchWidth+borderThickness);
+                    int y0 = borderThickness + row*(patchHeight+borderThickness);
+                    int x1 = x0 + patchWidth;
+                    int y1 = y0 + patchHeight;
+                    if (false) {
+                      g.drawLine(x0*mag,y0*mag, x1*mag,y0*mag);
+                      g.drawLine(x1*mag,y0*mag, x1*mag,y1*mag);
+                      g.drawLine(x1*mag,y1*mag, x0*mag,y1*mag);
+                      g.drawLine(x0*mag,y1*mag, x0*mag,y0*mag);
+                    }
+                    if (row == 0) {
+                      // diagonals
+                      g.drawLine(x0*mag,y1*mag, x1*mag,y0*mag);
+                      g.drawLine(x0*mag,y0*mag, x1*mag,y1*mag);
+                      // orthogonals
+                      g.drawLine((x0+patchWidth/4)*mag,y0*mag, (x0+patchWidth*3/4)*mag,y0*mag);
+                      g.drawLine((x0+patchWidth/4)*mag,y1*mag, (x0+patchWidth*3/4)*mag,y1*mag);
+                      g.drawLine(x0*mag,(y0+patchHeight/4)*mag, x0*mag,(y0+patchHeight*3/4)*mag);
+                      g.drawLine(x1*mag,(y0+patchHeight/4)*mag, x1*mag,(y0+patchHeight*3/4)*mag);
+                    } else {
+                      if (false) {
+                        drawPolygonIntrusivelyRandomized(g,new int[] {(x0+2)*mag, x1*mag, (x1-2)*mag, x0*mag},
+                                      new int[] {y1*mag, (y0+2)*mag, y0*mag, (y1-2)*mag},
+                                      4);
+                        drawPolygonIntrusivelyRandomized(g,new int[] {x0*mag, (x1-2)*mag, x1*mag, (x0+2)*mag},
+                                      new int[] {(y0+2)*mag, y1*mag, (y1-2)*mag, y0*mag},
+                                      4);
+                      } else {
+                        drawPolygonIntrusivelyRandomized(g, new int[] {(x0+patchWidth/2)*mag, x0*mag, (x0+patchWidth/2)*mag, x1*mag},
+                                                            new int[] {y0*mag, (y0+patchHeight/2)*mag, y1*mag, (y0+patchHeight/2)*mag},
+                                                            4);
+                      }
+                    }
+                  }
+                }
+                FontMetrics fm = g.getFontMetrics();
+                {
+                  String[][] texts = {
+                      {"ANTIALIAS_OFF", "STROKE_NORMALIZE"},
+                      {"ANTIALIAS_OFF", "STROKE_PURE"},
+                      {"ANTIALIAS_ON", "STROKE_NORMALIZE"},
+                      {"ANTIALIAS_ON", "STROKE_PURE"},
+                  };
+                  for (int col = 0; col < 4; ++col) {
+                    int xCenter = borderThickness*mag + col*(patchWidth+borderThickness)*mag + patchWidth*mag/2;
+                    {
+                      int x = xCenter - fm.stringWidth(texts[col][0])/2;
+                      int y = 3*(patchHeight+borderThickness)*mag + fm.getAscent();
+                      g.drawString(texts[col][0], x,y);
+                      x = xCenter - fm.stringWidth(texts[col][1])/2;
+                      y += fm.getHeight();
+                      g.drawString(texts[col][1], x,y);
+                    }
+                  }
+                }
+                {
+                  String[] texts = {
+                    "drawLine",
+                    "drawPolygon",
+                    "fillPolygon",
+                  };
+                  for (int row = 0; row < 3; ++row) {
+                    int yCenter = borderThickness*mag + row*(patchHeight+borderThickness)*mag + patchHeight*mag/2;
+                    int x = 4*(patchWidth+borderThickness)*mag + 4;
+                    g.drawString(texts[row], x,yCenter);
+                  }
+                }
+                if (true) {
+                  showStudyHelper((Graphics2D)g, patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
+                }
+              }
+
+              @Override public void paintComponent(Graphics g) {
+                OUT("            in paintComponent");
+
+                if (showStudyHolder[0]) {
+                  showStudy(g);
+                } else {
+
+                  Graphics2D g2d = (Graphics2D)g;
+
+                  // Conclusions:
+                  // - DEFAULT is the same as NORMALIZE which is the same as not doing this at all
+                  // - draw (outlines):
+                  //   - there is no bias by default
+                  //   - turning on pure for antialiased moves it NW
+                  //   - turning on pure for not-antialiased moves it NW
+                  //   - turning on pure for both moves both NW, antialiased slightly more than non-antialiased
+                  //   - conclusion: keep pure off for lines; the result is quite good.
+                  // - fill:
+                  //   - there is bias by default: antialiased is to NW of non-anti-aliased.
+                  //   - turning on pure for antialiased does nothing
+                  //   - turning on pure for non-antialised moves it to NW, which fixes the bias!
+                  for (int i_antialiased_then_not = 0; i_antialiased_then_not < 2; ++i_antialiased_then_not) {
+                    //int antialiased_then_not = i_antialiased_then_not;
+                    int antialiased_then_not = 1 - i_antialiased_then_not;
+                    g.setColor(antialiased_then_not==0 ? java.awt.Color.RED : java.awt.Color.GREEN);
+                    for (int fill_then_outline = 0; fill_then_outline < 2; ++fill_then_outline) {
+                      for (int normalized_then_pure = 0; normalized_then_pure < 2; ++normalized_then_pure) {
+                        if (valueHolders[antialiased_then_not][fill_then_outline][normalized_then_pure][0]) {
+                          g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, antialiased_then_not==0 ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+                          g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, normalized_then_pure==0 ? RenderingHints.VALUE_STROKE_NORMALIZE : RenderingHints.VALUE_STROKE_PURE);
+                          maybeFillMaybeDrawThing(g, /*fill=*/fill_then_outline==0, /*draw=*/fill_then_outline==1);
+                        }
+                      }
+                    }
+                  }
+                }
+                OUT("            out paintComponent");
+              }
+            }, new java.awt.GridBagConstraints(){{gridwidth = REMAINDER;
+                                                  fill = BOTH; weightx = 1.; weighty = 1.;}});
+            add(new JRow() {{
+              add(new JCol() {{
+                add(new JLabel("antialiased") {{
+                  setForeground(java.awt.Color.RED);
+                }});
+                add(new JLabel("not antialiased") {{
+                  setForeground(java.awt.Color.GREEN);
+                }});
+              }});
+              add(new JCol() {{
+                add(new JCheckBoxThatControlsValue("fill normalized", valueHolders[0][0][0]) {{
+                }});
+                add(new JCheckBoxThatControlsValue("fill normalized", valueHolders[1][0][0]) {{
+                }});
+              }});
+              add(new JCol() {{
+                add(new JCheckBoxThatControlsValue("fill pure", valueHolders[0][0][1]) {{
+                }});
+                add(new JCheckBoxThatControlsValue("fill pure", valueHolders[1][0][1]) {{
+                }});
+              }});
+              add(new JCol() {{
+                add(new JCheckBoxThatControlsValue("outline normalized", valueHolders[0][1][0]) {{
+                }});
+                add(new JCheckBoxThatControlsValue("outline normalized", valueHolders[1][1][0]) {{
+                }});
+              }});
+              add(new JCol() {{
+                add(new JCheckBoxThatControlsValue("outline pure", valueHolders[0][1][1]) {{
+                }});
+                add(new JCheckBoxThatControlsValue("outline pure", valueHolders[1][1][1]) {{
+                }});
+              }});
+              add(new JCheckBoxThatControlsValue("show study instead", showStudyHolder));
+            }});
+          }});
+          setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+          pack();
+          setVisible(true);
+        }};  // new JFrame
+        OUT("        out invokeLater run");
+      }
+    });
+    OUT("    out main");
+  }
+}
+
