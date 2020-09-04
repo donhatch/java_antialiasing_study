@@ -1,3 +1,6 @@
+Posted this as https://stackoverflow.com/questions/7701097/java-graphics-fillpolygon-how-to-also-render-right-and-bottom-edges#answer-63645061
+==========================
+
 Sometimes ["the graphics pen hangs down and to the right from the path it traverses"](https://docs.oracle.com/en/java/javase/11/docs/api/java.desktop/java/awt/Graphics.html), and sometimes it doesn't.
 I don't have any clear idea how to predict when it will or won't, but I have observed that RenderingHints.VALUE_STROKE_PURE can sometimes be used to alter the behavior, by trial and error.
 In particular, I found that if you turn on STROKE_PURE during your drawPolygon() calls in your program,

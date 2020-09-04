@@ -12,7 +12,7 @@ public final class AntiAliasingStudy {
   final static int patchWidth = 24;  // keep this a multiple of 4 for sanity
   final static int patchHeight = 20;  // keep this a multiple of 4 for sanity
   final static int borderThickness = 4;
-  final static int mag = 8;
+  final static int mag = 6;
 
   // derived quantities
   final static int totalWidth = 5*borderThickness + 4*patchWidth;
@@ -150,8 +150,8 @@ public final class AntiAliasingStudy {
 
   private static class IndirectExaminationView extends JComponent {
     public IndirectExaminationView() {
-      //setPreferredSize(new Dimension(770,555));  // for mag 6
-      setPreferredSize(new Dimension(985,702));  // for mag 8
+      setPreferredSize(new Dimension(770,555));  // for mag 6
+      //setPreferredSize(new Dimension(985,702));  // for mag 8
     }
     @Override public void paintComponent(Graphics g) {
       FontMetrics fm = g.getFontMetrics();
@@ -174,8 +174,8 @@ public final class AntiAliasingStudy {
 
   private static class DirectExaminationView extends JComponent {
     public DirectExaminationView() {
-      //setPreferredSize(new Dimension(770,555));  // for mag 6
-      setPreferredSize(new Dimension(985,702));  // for mag 8
+      setPreferredSize(new Dimension(770,555));  // for mag 6
+      //setPreferredSize(new Dimension(985,702));  // for mag 8
     }
     private BufferedImage imgFromTheRobot = null;
     @Override public void paintComponent(Graphics g) {
