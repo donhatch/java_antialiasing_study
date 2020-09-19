@@ -148,16 +148,24 @@ public final class AntiAliasingStudy {
   }  // showMagnifiedAndAnnotatedStudy
 
 
+  private static Dimension figureOutPreferredSize(FontMetrics fm) {
+    int preferredWidth = (totalWidth-borderThickness)*mag + 10 + fm.stringWidth("drawPolygon") + 9;
+    int preferredHeight = fm.getHeight() + totalHeight + (totalHeight-borderThickness)*mag + 2*fm.getHeight() + 2;
+    return new Dimension(preferredWidth, preferredHeight);
+  }
+
   private static class IndirectExaminationView extends JComponent {
     public IndirectExaminationView() {
-      setPreferredSize(new Dimension(770,555));  // for mag 6
-      //setPreferredSize(new Dimension(985,702));  // for mag 8
+      setFont(new Font("Times", Font.PLAIN, 12));
+      setPreferredSize(figureOutPreferredSize(getFontMetrics(getFont())));
     }
     @Override public void paintComponent(Graphics g) {
       FontMetrics fm = g.getFontMetrics();
       g.setColor(java.awt.Color.BLACK);
       g.drawString("through BufferedImage:", 0,fm.getAscent());
+      // The following seem equivalent
       java.awt.image.BufferedImage studyImage = new java.awt.image.BufferedImage(totalWidth, totalHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+      //java.awt.image.BufferedImage studyImage = (BufferedImage)this.createImage(totalWidth, totalHeight);
       drawLittleStudy(studyImage.createGraphics(),
                       0,0,
                       patchWidth, patchHeight, borderThickness, totalWidth, totalHeight);
@@ -174,8 +182,8 @@ public final class AntiAliasingStudy {
 
   private static class DirectExaminationView extends JComponent {
     public DirectExaminationView() {
-      setPreferredSize(new Dimension(770,555));  // for mag 6
-      //setPreferredSize(new Dimension(985,702));  // for mag 8
+      setFont(new Font("Times", Font.PLAIN, 12));
+      setPreferredSize(figureOutPreferredSize(getFontMetrics(getFont())));
     }
     private BufferedImage imgFromTheRobot = null;
     @Override public void paintComponent(Graphics g) {
@@ -227,7 +235,7 @@ public final class AntiAliasingStudy {
     javax.swing.SwingUtilities.invokeLater(new Runnable() {
       @Override public void run()
       {
-        new JFrame("direct to JComponent") {{
+        JFrame directFrame = new JFrame("direct to JComponent") {{
           getContentPane().add(new DirectExaminationView());
           setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
           pack();
@@ -238,7 +246,7 @@ public final class AntiAliasingStudy {
           getContentPane().add(new IndirectExaminationView());
           setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
           pack();
-          setLocation(950,0);
+          setLocation(directFrame.getWidth(),0);
           setVisible(true);
         }};
       }
