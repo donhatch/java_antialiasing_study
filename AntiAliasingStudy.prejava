@@ -235,7 +235,7 @@ public final class AntiAliasingStudy {
     javax.swing.SwingUtilities.invokeLater(new Runnable() {
       @Override public void run()
       {
-        JFrame directFrame = new JFrame("direct to JComponent") {{
+        final JFrame directFrame = new JFrame("direct to JComponent") {{
           getContentPane().add(new DirectExaminationView());
           setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
           pack();
